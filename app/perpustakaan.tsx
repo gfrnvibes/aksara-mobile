@@ -182,38 +182,41 @@ export default function PerpustakaanScreen() {
           <View style={styles.grid}>
             {data?.buku.map((item, idx) => (
               <AnimatedCard key={item.id} index={idx} style={styles.card}>
-                {item.sampul_url ? (
-                  <Image source={{ uri: item.sampul_url }} style={styles.coverImg} />
-                ) : (
-                  <View style={styles.coverPlaceholder}>
-                    <Ionicons name="book" size={28} color="#065f46" />
-                  </View>
-                )}
-
-                <View style={styles.badgeRow}>
-                  <View style={styles.katBadge}>
-                    <Text style={styles.katBadgeText} numberOfLines={1}>
-                      {item.kategori_label}
-                    </Text>
-                  </View>
-                  {item.tingkat !== null ? (
-                    <View style={styles.kelasBadge}>
-                      <Text style={styles.kelasBadgeText}>{item.tingkat_label}</Text>
+                <View>
+                  {item.sampul_url ? (
+                    <Image source={{ uri: item.sampul_url }} style={styles.coverImg} />
+                  ) : (
+                    <View style={styles.coverPlaceholder}>
+                      <Ionicons name="book" size={28} color="#fde68a" />
+                      <Text style={styles.coverPlaceholderTitle}>E-BOOK PDF</Text>
                     </View>
+                  )}
+
+                  <View style={styles.badgeRow}>
+                    <View style={styles.katBadge}>
+                      <Text style={styles.katBadgeText} numberOfLines={1}>
+                        {item.kategori_label}
+                      </Text>
+                    </View>
+                    {item.tingkat !== null ? (
+                      <View style={styles.kelasBadge}>
+                        <Text style={styles.kelasBadgeText}>{item.tingkat_label}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  <Text style={styles.bookTitle} numberOfLines={2}>
+                    {item.judul}
+                  </Text>
+                  <Text style={styles.bookMeta} numberOfLines={1}>
+                    {item.penulis || 'Tim Penyusun'}
+                  </Text>
+                  {item.mapel ? (
+                    <Text style={styles.mapelText} numberOfLines={1}>
+                      {item.mapel}
+                    </Text>
                   ) : null}
                 </View>
-
-                <Text style={styles.bookTitle} numberOfLines={2}>
-                  {item.judul}
-                </Text>
-                <Text style={styles.bookMeta} numberOfLines={1}>
-                  {item.penulis || 'Tim Penyusun'}
-                </Text>
-                {item.mapel ? (
-                  <Text style={styles.mapelText} numberOfLines={1}>
-                    {item.mapel}
-                  </Text>
-                ) : null}
 
                 <View style={styles.cardFooter}>
                   <View style={styles.readCount}>
@@ -291,12 +294,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 112,
     borderRadius: 10,
-    backgroundColor: '#ecfdf5',
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
+    backgroundColor: '#065f46',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
     marginBottom: 8,
+  },
+  coverPlaceholderTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#d1fae5',
+    letterSpacing: 1,
   },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 5 },
   katBadge: {
