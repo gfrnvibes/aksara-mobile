@@ -104,7 +104,8 @@ function RootLayoutNav() {
 
   const inAuthRoute = segments[0] === 'login';
   const inSiswaTabs = segments[0] === '(siswa)';
-  const inSharedRoute = segments[0] === 'profil';
+  const inSharedRoute =
+    segments[0] === 'profil' || segments[0] === 'perpustakaan';
   const isSiswa = user?.role === 'siswa';
 
   return (
@@ -131,6 +132,7 @@ function RootLayoutNav() {
         <Stack.Screen name="presensi-lokasi" options={{ title: 'Presensi Lokasi & Foto' }} />
         <Stack.Screen name="permintaan-jadwal" options={{ title: 'Permintaan Jadwal' }} />
         <Stack.Screen name="keuangan-guru" options={{ title: 'Keuangan Guru' }} />
+        <Stack.Screen name="perpustakaan" options={{ title: 'Perpustakaan Digital' }} />
         <Stack.Screen name="profil" options={{ title: 'Profil & Pengaturan' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>

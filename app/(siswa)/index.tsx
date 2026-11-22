@@ -347,6 +347,15 @@ export default function SiswaBerandaScreen() {
                 <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
               </Pressable>
               <View style={styles.divider} />
+              <Pressable style={styles.quickItem} onPress={() => router.push('/perpustakaan')}>
+                <Ionicons name="library-outline" size={20} color="#065f46" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.quickTitle}>Perpustakaan Digital</Text>
+                  <Text style={styles.quickDesc}>Baca e-book pelajaran, PAI, dan literasi madrasah</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+              </Pressable>
+              <View style={styles.divider} />
               <Pressable style={styles.quickItem} onPress={() => router.push('/(siswa)/akademik')}>
                 <Ionicons name="book-outline" size={20} color="#065f46" />
                 <View style={{ flex: 1 }}>

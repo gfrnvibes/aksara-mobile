@@ -191,6 +191,30 @@ export interface GuruKeuanganResponse {
   }[];
 }
 
+export interface PerpustakaanBukuItem {
+  id: number;
+  judul: string;
+  penulis: string | null;
+  penerbit: string | null;
+  tahun_terbit: number | null;
+  isbn: string | null;
+  kategori: string;
+  kategori_label: string;
+  tingkat: number | null;
+  tingkat_label: string;
+  mapel: string | null;
+  deskripsi: string | null;
+  sampul_url: string | null;
+  jumlah_dibaca: number;
+  baca_url: string;
+}
+
+export interface PerpustakaanResponse {
+  kategori_opsi: Record<string, string>;
+  tingkat_opsi: Record<string, string>;
+  buku: PerpustakaanBukuItem[];
+}
+
 export interface TahunAjaranInfo {
   id: number;
   nama: string;
