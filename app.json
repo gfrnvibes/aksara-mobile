@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "aksara-mobile",
+    "name": "Aksara At-Taufiq",
     "slug": "aksara-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -47,7 +47,14 @@
         {
           "locationWhenInUsePermission": "Izinkan Aksara mengakses lokasi GPS untuk memverifikasi radius presensi madrasah."
         }
-      ]
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Izinkan Aksara menggunakan Face ID atau biometrik untuk membuka kunci aplikasi."
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
