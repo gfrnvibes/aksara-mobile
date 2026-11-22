@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 
 import { AnimatedCard } from '@/src/components/AnimatedCard';
+import { SwipeTabScreen } from '@/src/components/SwipeTabScreen';
+import { TabHeader } from '@/src/components/TabHeader';
 import { apiRequest, JadwalHari, JadwalResponse } from '@/src/lib/api';
 
 export default function JadwalScreen() {
@@ -48,8 +50,10 @@ export default function JadwalScreen() {
   const activeDay: JadwalHari | undefined = data?.hari.find((h) => h.hari === selectedHari);
 
   return (
-    <ScrollView
-      style={styles.container}
+    <SwipeTabScreen current="jadwal">
+      <TabHeader title="Jadwal Mengajar" subtitle="Jadwal pelajaran terbit semester aktif" />
+      <ScrollView
+        style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={
         <RefreshControl
@@ -126,6 +130,7 @@ export default function JadwalScreen() {
         </>
       )}
     </ScrollView>
+    </SwipeTabScreen>
   );
 }
 

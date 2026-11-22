@@ -15,7 +15,14 @@ import {
 } from 'react-native';
 
 import { AnimatedCard } from '@/src/components/AnimatedCard';
-import { apiRequest, getToken, KehadiranGtkResponse, PiketResponse } from '@/src/lib/api';
+import {
+  apiRequest,
+  getApiUrl,
+  getToken,
+  KehadiranGtkResponse,
+  PiketResponse,
+  resolveMediaUrl,
+} from '@/src/lib/api';
 
 export default function PiketScreen() {
   const router = useRouter();
@@ -24,6 +31,8 @@ export default function PiketScreen() {
   const [piketData, setPiketData] = useState<PiketResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [authToken, setAuthToken] = useState<string | null>(null);
+  const [activeApiUrl, setActiveApiUrl] = useState<string>('');
+  const [fotoError, setFotoError] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<KehadiranGtkResponse['riwayat'][number] | null>(null);
 
   const [showPiketModal, setShowPiketModal] = useState(false);
@@ -35,12 +44,14 @@ export default function PiketScreen() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [gtk, token] = await Promise.all([
+      const [gtk, token, url] = await Promise.all([
         apiRequest<KehadiranGtkResponse>('/guru/kehadiran-gtk'),
         getToken(),
+        getApiUrl(),
       ]);
       setGtkData(gtk);
       setAuthToken(token);
+      setActiveApiUrl(url);
       try {
         const piket = await apiRequest<PiketResponse>('/guru/piket');
         setPiketData(piket);
@@ -136,7 +147,13 @@ export default function PiketScreen() {
               </Text>
               {item.catatan && <Text style={styles.note}>{item.catatan}</Text>}
               {item.foto_url && (
-                <Pressable style={styles.fotoBtn} onPress={() => setPreviewItem(item)}>
+                <Pressable
+                  style={styles.fotoBtn}
+                  onPress={() => {
+                    setFotoError(null);
+                    setPreviewItem(item);
+                  }}
+                >
                   <Ionicons name="image-outline" size={15} color="#065f46" />
                   <Text style={styles.fotoBtnText}>Lihat Foto</Text>
                 </Pressable>
@@ -223,13 +240,16 @@ export default function PiketScreen() {
             {previewItem?.foto_url && (
               <Image
                 source={{
-                  uri: previewItem.foto_url,
-                  headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+                  uri: activeApiUrl
+                    ? resolveMediaUrl(previewItem.foto_url, activeApiUrl)
+                    : previewItem.foto_url,
                 }}
                 style={styles.fotoPreviewImg}
                 resizeMode="contain"
+                onError={() => setFotoError('Foto gagal dimuat dari server.')}
               />
             )}
+            {fotoError && <Text style={styles.fotoErrorText}>{fotoError}</Text>}
             {previewItem && (
               <View style={{ marginTop: 10 }}>
                 <Text style={styles.name}>{previewItem.gtk_nama}</Text>
@@ -258,13 +278,16 @@ export default function PiketScreen() {
             {previewItem?.foto_url && (
               <Image
                 source={{
-                  uri: previewItem.foto_url,
-                  headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+                  uri: activeApiUrl
+                    ? resolveMediaUrl(previewItem.foto_url, activeApiUrl)
+                    : previewItem.foto_url,
                 }}
                 style={styles.fotoPreviewImg}
                 resizeMode="contain"
+                onError={() => setFotoError('Foto gagal dimuat dari server.')}
               />
             )}
+            {fotoError && <Text style={styles.fotoErrorText}>{fotoError}</Text>}
             {previewItem && (
               <View style={{ marginTop: 10 }}>
                 <Text style={styles.name}>{previewItem.gtk_nama}</Text>
@@ -408,5 +431,11 @@ const styles = StyleSheet.create({
     height: 360,
     borderRadius: 12,
     backgroundColor: '#f1f5f9',
+  },
+  fotoErrorText: {
+    color: '#b91c1c',
+    fontSize: 13,
+    marginTop: 8,
+    textAlign: 'center',
   },
 });

@@ -5,6 +5,8 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AnimatedCard } from '@/src/components/AnimatedCard';
+import { SwipeTabScreen } from '@/src/components/SwipeTabScreen';
+import { TabHeader } from '@/src/components/TabHeader';
 
 interface MenuItem {
   title: string;
@@ -92,7 +94,9 @@ export default function LainnyaScreen() {
   const router = useRouter();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <SwipeTabScreen current="lainnya">
+      <TabHeader title="Menu Panel Guru" subtitle="Penilaian, wali kelas, perangkat, & akun" />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {MENU_GROUPS.map((group) => (
         <View key={group.heading} style={styles.group}>
           <Text style={styles.heading}>{group.heading}</Text>
@@ -117,6 +121,7 @@ export default function LainnyaScreen() {
         </View>
       ))}
     </ScrollView>
+    </SwipeTabScreen>
   );
 }
 

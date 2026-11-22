@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,6 +12,9 @@ import {
   View,
 } from 'react-native';
 
+import { DatePickerField } from '@/src/components/DatePickerField';
+import { SwipeTabScreen } from '@/src/components/SwipeTabScreen';
+import { TabHeader } from '@/src/components/TabHeader';
 import {
   apiRequest,
   KelasOption,
@@ -37,6 +41,8 @@ export default function PresensiScreen() {
     alpa: 'Alpa',
   });
   const [selectedKelasId, setSelectedKelasId] = useState<number | null>(null);
+  const selectedKelasRef = useRef<number | null>(null);
+  const sheetReqSeq = useRef(0);
   const [versi, setVersi] = useState('');
   const [rows, setRows] = useState<PresensiSiswaRow[]>([]);
   const [alasan, setAlasan] = useState('');
@@ -44,12 +50,16 @@ export default function PresensiScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  selectedKelasRef.current = selectedKelasId;
+
   const loadSheet = useCallback(async (kelasId: number, tgl: string) => {
+    const seq = ++sheetReqSeq.current;
     try {
       setError(null);
       const sheet = await apiRequest<PresensiSheetResponse>(
         `/guru/presensi?kelas_id=${kelasId}&tanggal=${encodeURIComponent(tgl)}`,
       );
+      if (seq !== sheetReqSeq.current) return;
       setVersi(sheet.versi);
       setRows(
         sheet.siswa.map((s) => ({
@@ -58,37 +68,42 @@ export default function PresensiScreen() {
         })),
       );
     } catch (err) {
+      if (seq !== sheetReqSeq.current) return;
       setRows([]);
       setError(err instanceof Error ? err.message : 'Gagal memuat daftar siswa.');
     }
   }, []);
 
-  const loadOpsi = useCallback(async () => {
-    setLoading(true);
-    try {
-      setError(null);
-      const opsi = await apiRequest<PresensiOpsiResponse>(
-        `/guru/presensi/opsi?tanggal=${encodeURIComponent(tanggal)}`,
-      );
-      setKelasList(opsi.kelas);
-      setStatusOpsi(opsi.status_opsi);
-      const nextKelas =
-        opsi.kelas.find((k) => k.id === selectedKelasId)?.id ?? opsi.kelas[0]?.id ?? null;
-      setSelectedKelasId(nextKelas);
-      if (nextKelas !== null) {
-        await loadSheet(nextKelas, tanggal);
-      } else {
-        setRows([]);
+  const loadOpsi = useCallback(
+    async (tgl: string) => {
+      setLoading(true);
+      try {
+        setError(null);
+        const opsi = await apiRequest<PresensiOpsiResponse>(
+          `/guru/presensi/opsi?tanggal=${encodeURIComponent(tgl)}`,
+        );
+        setKelasList(opsi.kelas);
+        setStatusOpsi(opsi.status_opsi);
+        const currentKelas = selectedKelasRef.current;
+        const nextKelas =
+          opsi.kelas.find((k) => k.id === currentKelas)?.id ?? opsi.kelas[0]?.id ?? null;
+        setSelectedKelasId(nextKelas);
+        if (nextKelas !== null) {
+          await loadSheet(nextKelas, tgl);
+        } else {
+          setRows([]);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Gagal memuat opsi kelas.');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal memuat opsi kelas.');
-    } finally {
-      setLoading(false);
-    }
-  }, [tanggal, selectedKelasId, loadSheet]);
+    },
+    [loadSheet],
+  );
 
   useEffect(() => {
-    loadOpsi();
+    loadOpsi(todayIso());
   }, [loadOpsi]);
 
   function updateStatus(siswaId: number, status: string) {
@@ -98,6 +113,16 @@ export default function PresensiScreen() {
           ? { ...row, status, terlambat_menit: status === 'hadir' ? row.terlambat_menit : 0 }
           : row,
       ),
+    );
+  }
+
+  function markAllHadir() {
+    setRows((prev) =>
+      prev.map((row) => ({
+        ...row,
+        status: 'hadir',
+        terlambat_menit: 0,
+      })),
     );
   }
 
@@ -133,23 +158,24 @@ export default function PresensiScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
+    <SwipeTabScreen current="presensi">
+      <TabHeader title="Presensi Kelas" subtitle="Catat kehadiran harian siswa per kelas" />
+      <ScrollView
+        style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={loadOpsi} />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={() => loadOpsi(tanggal)} />}
     >
       <View style={styles.filterCard}>
-        <Text style={styles.label}>Tanggal (YYYY-MM-DD)</Text>
+        <Text style={styles.label}>Tanggal</Text>
         <View style={styles.dateRow}>
-          <TextInput
-            style={[styles.input, styles.dateInput]}
+          <DatePickerField
             value={tanggal}
-            onChangeText={setTanggal}
-            placeholder="2026-11-21"
+            maximumDate={new Date()}
+            onChange={(nextDate) => {
+              setTanggal(nextDate);
+              loadOpsi(nextDate);
+            }}
           />
-          <Pressable style={styles.reloadBtn} onPress={loadOpsi}>
-            <Text style={styles.reloadBtnText}>Muat</Text>
-          </Pressable>
         </View>
 
         <Text style={styles.label}>Pilih Kelas</Text>
@@ -187,30 +213,60 @@ export default function PresensiScreen() {
       )}
 
       {loading ? (
-        <ActivityIndicator size="large" color="#0f766e" style={styles.loader} />
+        <ActivityIndicator size="large" color="#065f46" style={styles.loader} />
       ) : (
-        rows.map((row) => (
-          <View key={row.siswa_id} style={styles.studentCard}>
-            <Text style={styles.studentName}>{row.nama}</Text>
-            {row.nis && <Text style={styles.studentNis}>NIS {row.nis}</Text>}
-            <View style={styles.statusRow}>
-              {Object.entries(statusOpsi).map(([key, label]) => {
-                const active = row.status === key;
-                return (
-                  <Pressable
-                    key={key}
-                    style={[styles.statusBtn, active && styles.statusBtnActive]}
-                    onPress={() => updateStatus(row.siswa_id, key)}
-                  >
-                    <Text style={[styles.statusBtnText, active && styles.statusBtnTextActive]}>
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+        <>
+          {rows.length > 0 && (
+            <View style={styles.actionHeader}>
+              <Text style={styles.countText}>{rows.length} siswa</Text>
+              <Pressable style={styles.markAllBtn} onPress={markAllHadir}>
+                <Ionicons name="checkmark-done-outline" size={16} color="#065f46" />
+                <Text style={styles.markAllText}>Tandai Semua Hadir</Text>
+              </Pressable>
             </View>
+          )}
+
+          <View style={styles.studentGrid}>
+            {rows.map((row) => (
+              <View key={row.siswa_id} style={styles.studentCard}>
+                <Text style={styles.studentName} numberOfLines={1}>
+                  {row.nama}
+                </Text>
+                <Text style={styles.studentNis} numberOfLines={1}>
+                  {row.nis ? `NIS ${row.nis}` : '—'}
+                </Text>
+                <View style={styles.statusRow}>
+                  {Object.entries(statusOpsi).map(([key, label]) => {
+                    const active = row.status === key;
+                    const shortLabel = label.charAt(0).toUpperCase();
+                    const activeColor =
+                      key === 'hadir'
+                        ? '#065f46'
+                        : key === 'sakit'
+                          ? '#d97706'
+                          : key === 'izin'
+                            ? '#0284c7'
+                            : '#dc2626';
+                    return (
+                      <Pressable
+                        key={key}
+                        style={[
+                          styles.statusBtn,
+                          active && { backgroundColor: activeColor, borderColor: activeColor },
+                        ]}
+                        onPress={() => updateStatus(row.siswa_id, key)}
+                      >
+                        <Text style={[styles.statusBtnText, active && styles.statusBtnTextActive]}>
+                          {shortLabel}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
           </View>
-        ))
+        </>
       )}
 
       {rows.length > 0 && (
@@ -236,6 +292,7 @@ export default function PresensiScreen() {
         </View>
       )}
     </ScrollView>
+    </SwipeTabScreen>
   );
 }
 
@@ -293,27 +350,52 @@ const styles = StyleSheet.create({
   },
   errorText: { color: '#b91c1c', fontSize: 13 },
   loader: { marginTop: 32 },
+  actionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  countText: { fontSize: 13, fontWeight: '600', color: '#475569' },
+  markAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  markAllText: { fontSize: 12, fontWeight: '700', color: '#065f46' },
+  studentGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 10,
+  },
   studentCard: {
+    width: '48.5%',
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
-  studentName: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
-  studentNis: { fontSize: 12, color: '#64748b', marginTop: 2, marginBottom: 10 },
-  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  studentName: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
+  studentNis: { fontSize: 11, color: '#64748b', marginTop: 2, marginBottom: 8 },
+  statusRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 4, marginTop: 4 },
   statusBtn: {
-    paddingHorizontal: 12,
+    flex: 1,
     paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#cbd5e1',
     backgroundColor: '#f8fafc',
+    alignItems: 'center',
   },
-  statusBtnActive: { backgroundColor: '#0f766e', borderColor: '#0f766e' },
-  statusBtnText: { fontSize: 13, fontWeight: '600', color: '#334155' },
+  statusBtnText: { fontSize: 13, fontWeight: '700', color: '#334155' },
   statusBtnTextActive: { color: '#ffffff' },
   saveCard: {
     backgroundColor: '#ffffff',

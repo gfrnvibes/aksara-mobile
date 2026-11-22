@@ -13,6 +13,9 @@ import {
   View,
 } from 'react-native';
 
+import { DatePickerField } from '@/src/components/DatePickerField';
+import { SwipeTabScreen } from '@/src/components/SwipeTabScreen';
+import { TabHeader } from '@/src/components/TabHeader';
 import { useAuth } from '@/src/context/AuthContext';
 import { apiRequest, JurnalListResponse, PertemuanItem } from '@/src/lib/api';
 
@@ -155,23 +158,21 @@ export default function JurnalScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
+    <SwipeTabScreen current="jurnal">
+      <TabHeader title="Jurnal Mengajar" subtitle="Catat kehadiran mengajar & materi pembelajaran" />
+      <ScrollView
+        style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={loadJurnal} />}
     >
       <View style={styles.filterCard}>
         <Text style={styles.label}>Tanggal Pertemuan</Text>
         <View style={styles.dateRow}>
-          <TextInput
-            style={[styles.input, styles.dateInput]}
+          <DatePickerField
             value={tanggal}
-            onChangeText={setTanggal}
-            placeholder="2026-11-21"
+            maximumDate={new Date()}
+            onChange={setTanggal}
           />
-          <Pressable style={styles.reloadBtn} onPress={loadJurnal}>
-            <Text style={styles.reloadBtnText}>Muat</Text>
-          </Pressable>
         </View>
       </View>
 
@@ -308,6 +309,7 @@ export default function JurnalScreen() {
         </ScrollView>
       </Modal>
     </ScrollView>
+    </SwipeTabScreen>
   );
 }
 

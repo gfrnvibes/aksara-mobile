@@ -15,6 +15,7 @@ import {
 
 import { AnimatedCard } from '@/src/components/AnimatedCard';
 import { IslamicPattern } from '@/src/components/IslamicPattern';
+import { SwipeTabScreen } from '@/src/components/SwipeTabScreen';
 import { useAuth } from '@/src/context/AuthContext';
 import { apiRequest, BerandaResponse } from '@/src/lib/api';
 
@@ -83,6 +84,7 @@ export default function BerandaScreen() {
       visible: data?.peran.is_wali_kelas ?? true,
     },
     { label: 'Piket & GTK', icon: 'shield-checkmark-outline', colors: ['#0f766e', '#115e59'], route: '/piket' },
+    { label: 'Pref. Jadwal', icon: 'options-outline', colors: ['#0891b2', '#0e7490'], route: '/permintaan-jadwal' },
     {
       label: 'Ekskul',
       icon: 'people-outline',
@@ -94,8 +96,9 @@ export default function BerandaScreen() {
   const quickMenus = allQuickMenus.filter((item) => item.visible !== false);
 
   return (
-    <ScrollView
-      style={styles.container}
+    <SwipeTabScreen current="index">
+      <ScrollView
+        style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={loadBeranda} />}
     >
@@ -235,6 +238,7 @@ export default function BerandaScreen() {
         )}
       </View>
     </ScrollView>
+    </SwipeTabScreen>
   );
 }
 
@@ -303,7 +307,8 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    columnGap: '2%',
     rowGap: 10,
     marginBottom: 18,
   },
