@@ -130,6 +130,7 @@ function RootLayoutNav() {
         <Stack.Screen name="piket" options={{ title: 'Kehadiran GTK & Piket' }} />
         <Stack.Screen name="presensi-lokasi" options={{ title: 'Presensi Lokasi & Foto' }} />
         <Stack.Screen name="permintaan-jadwal" options={{ title: 'Permintaan Jadwal' }} />
+        <Stack.Screen name="keuangan-guru" options={{ title: 'Keuangan Guru' }} />
         <Stack.Screen name="profil" options={{ title: 'Profil & Pengaturan' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>

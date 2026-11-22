@@ -68,6 +68,13 @@ const MENU_GROUPS: { heading: string; items: MenuItem[] }[] = [
         route: '/organisasi',
       },
       {
+        title: 'Keuangan & Gaji Guru',
+        subtitle: 'Pantau rincian slip gaji, tunjangan, dan status pembayaran',
+        icon: 'wallet-outline',
+        colors: ['#15803d', '#166534'],
+        route: '/keuangan-guru',
+      },
+      {
         title: 'Permintaan Jadwal',
         subtitle: 'Atur preferensi jam mengajar & hari tidak bisa',
         icon: 'options-outline',
