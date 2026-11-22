@@ -179,57 +179,55 @@ export default function PerpustakaanScreen() {
             <Text style={styles.emptyText}>Belum ada buku digital yang sesuai filter.</Text>
           </AnimatedCard>
         ) : (
-          data?.buku.map((item, idx) => (
-            <AnimatedCard key={item.id} index={idx} style={styles.card}>
-              <View style={styles.bookRow}>
+          <View style={styles.grid}>
+            {data?.buku.map((item, idx) => (
+              <AnimatedCard key={item.id} index={idx} style={styles.card}>
                 {item.sampul_url ? (
                   <Image source={{ uri: item.sampul_url }} style={styles.coverImg} />
                 ) : (
                   <View style={styles.coverPlaceholder}>
-                    <Ionicons name="book" size={26} color="#065f46" />
+                    <Ionicons name="book" size={28} color="#065f46" />
                   </View>
                 )}
 
-                <View style={{ flex: 1 }}>
-                  <View style={styles.badgeRow}>
-                    <View style={styles.katBadge}>
-                      <Text style={styles.katBadgeText}>{item.kategori_label}</Text>
-                    </View>
-                    {item.tingkat !== null ? (
-                      <View style={styles.kelasBadge}>
-                        <Text style={styles.kelasBadgeText}>{item.tingkat_label}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-
-                  <Text style={styles.bookTitle}>{item.judul}</Text>
-                  <Text style={styles.bookMeta}>
-                    {item.penulis || 'Tim Penyusun'}
-                    {item.tahun_terbit ? ` • ${item.tahun_terbit}` : ''}
-                  </Text>
-                  {item.mapel ? (
-                    <Text style={styles.mapelText}>Mapel: {item.mapel}</Text>
-                  ) : null}
-                  {item.deskripsi ? (
-                    <Text style={styles.descText} numberOfLines={2}>
-                      {item.deskripsi}
+                <View style={styles.badgeRow}>
+                  <View style={styles.katBadge}>
+                    <Text style={styles.katBadgeText} numberOfLines={1}>
+                      {item.kategori_label}
                     </Text>
+                  </View>
+                  {item.tingkat !== null ? (
+                    <View style={styles.kelasBadge}>
+                      <Text style={styles.kelasBadgeText}>{item.tingkat_label}</Text>
+                    </View>
                   ) : null}
                 </View>
-              </View>
 
-              <View style={styles.cardFooter}>
-                <View style={styles.readCount}>
-                  <Ionicons name="eye-outline" size={14} color="#64748b" />
-                  <Text style={styles.readCountText}>{item.jumlah_dibaca}x dibaca</Text>
+                <Text style={styles.bookTitle} numberOfLines={2}>
+                  {item.judul}
+                </Text>
+                <Text style={styles.bookMeta} numberOfLines={1}>
+                  {item.penulis || 'Tim Penyusun'}
+                </Text>
+                {item.mapel ? (
+                  <Text style={styles.mapelText} numberOfLines={1}>
+                    {item.mapel}
+                  </Text>
+                ) : null}
+
+                <View style={styles.cardFooter}>
+                  <View style={styles.readCount}>
+                    <Ionicons name="eye-outline" size={12} color="#64748b" />
+                    <Text style={styles.readCountText}>{item.jumlah_dibaca}</Text>
+                  </View>
+                  <Pressable style={styles.bacaBtn} onPress={() => handleBacaPdf(item)}>
+                    <Ionicons name="book-outline" size={13} color="#ffffff" />
+                    <Text style={styles.bacaBtnText}>Baca</Text>
+                  </Pressable>
                 </View>
-                <Pressable style={styles.bacaBtn} onPress={() => handleBacaPdf(item)}>
-                  <Ionicons name="document-text-outline" size={16} color="#ffffff" />
-                  <Text style={styles.bacaBtnText}>Baca PDF</Text>
-                </Pressable>
-              </View>
-            </AnimatedCard>
-          ))
+              </AnimatedCard>
+            ))}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -273,65 +271,71 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 32 },
   loaderBox: { padding: 48, alignItems: 'center', gap: 10 },
   loaderText: { color: '#64748b', fontSize: 13 },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 12,
+  },
   card: {
+    width: '48.5%',
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 14,
+    padding: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    marginBottom: 12,
+    justifyContent: 'space-between',
   },
-  bookRow: { flexDirection: 'row', gap: 12 },
-  coverImg: { width: 72, height: 96, borderRadius: 10, backgroundColor: '#e2e8f0' },
+  coverImg: { width: '100%', height: 112, borderRadius: 10, backgroundColor: '#e2e8f0', marginBottom: 8 },
   coverPlaceholder: {
-    width: 72,
-    height: 96,
+    width: '100%',
+    height: 112,
     borderRadius: 10,
     backgroundColor: '#ecfdf5',
     borderWidth: 1,
     borderColor: '#a7f3d0',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
   },
-  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 5 },
   katBadge: {
     backgroundColor: '#ecfdf5',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
-  katBadgeText: { fontSize: 10, fontWeight: '700', color: '#065f46' },
+  katBadgeText: { fontSize: 9, fontWeight: '700', color: '#065f46' },
   kelasBadge: {
     backgroundColor: '#fef3c7',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
-  kelasBadgeText: { fontSize: 10, fontWeight: '700', color: '#b45309' },
-  bookTitle: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
-  bookMeta: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  mapelText: { fontSize: 11, fontWeight: '600', color: '#0f766e', marginTop: 2 },
-  descText: { fontSize: 12, color: '#475569', marginTop: 4, lineHeight: 17 },
+  kelasBadgeText: { fontSize: 9, fontWeight: '700', color: '#b45309' },
+  bookTitle: { fontSize: 13, fontWeight: '700', color: '#0f172a', lineHeight: 17 },
+  bookMeta: { fontSize: 11, color: '#64748b', marginTop: 2 },
+  mapelText: { fontSize: 10, fontWeight: '600', color: '#0f766e', marginTop: 2 },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 10,
+    marginTop: 10,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
   },
-  readCount: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  readCountText: { fontSize: 12, color: '#64748b', fontWeight: '600' },
+  readCount: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  readCountText: { fontSize: 11, color: '#64748b', fontWeight: '600' },
   bacaBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: '#065f46',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
-  bacaBtnText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
+  bacaBtnText: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
   emptyText: { textAlign: 'center', color: '#64748b', fontSize: 13, paddingVertical: 12 },
 });
