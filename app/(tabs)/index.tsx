@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -17,7 +18,7 @@ import { AnimatedCard } from '@/src/components/AnimatedCard';
 import { IslamicPattern } from '@/src/components/IslamicPattern';
 import { SwipeTabScreen } from '@/src/components/SwipeTabScreen';
 import { useAuth } from '@/src/context/AuthContext';
-import { apiRequest, BerandaResponse } from '@/src/lib/api';
+import { apiRequest, BerandaResponse, PengumumanItem, PengumumanResponse } from '@/src/lib/api';
 
 interface QuickMenuItem {
   label: string;
@@ -31,13 +32,19 @@ export default function BerandaScreen() {
   const router = useRouter();
   const { user, tahunAjaran } = useAuth();
   const [data, setData] = useState<BerandaResponse | null>(null);
+  const [pengumuman, setPengumuman] = useState<PengumumanItem[]>([]);
+  const [selectedPengumuman, setSelectedPengumuman] = useState<PengumumanItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [markingHadir, setMarkingHadir] = useState(false);
 
   const loadBeranda = useCallback(async () => {
     try {
-      const res = await apiRequest<BerandaResponse>('/guru/beranda');
+      const [res, pengumumanRes] = await Promise.all([
+        apiRequest<BerandaResponse>('/guru/beranda'),
+        apiRequest<PengumumanResponse>('/pengumuman').catch(() => ({ pengumuman: [] })),
+      ]);
       setData(res);
+      setPengumuman(pengumumanRes.pengumuman ?? []);
     } catch {
       // Handled by empty state
     } finally {
@@ -84,6 +91,7 @@ export default function BerandaScreen() {
       visible: data?.peran.is_wali_kelas ?? true,
     },
     { label: 'Piket & GTK', icon: 'shield-checkmark-outline', colors: ['#0f766e', '#115e59'], route: '/piket' },
+    { label: 'Keuangan', icon: 'wallet-outline', colors: ['#15803d', '#166534'], route: '/keuangan-guru' },
     { label: 'Pref. Jadwal', icon: 'options-outline', colors: ['#0891b2', '#0e7490'], route: '/permintaan-jadwal' },
     {
       label: 'Ekskul',
@@ -150,8 +158,38 @@ export default function BerandaScreen() {
       </LinearGradient>
 
       <View style={styles.body}>
+        {pengumuman.length > 0 && (
+          <AnimatedCard index={0} style={styles.pengumumanGlassCard}>
+            <View style={styles.pengumumanHeaderRow}>
+              <View style={styles.pengumumanBadge}>
+                <Ionicons name="megaphone" size={12} color="#ffffff" />
+              </View>
+              <Text style={styles.pengumumanSectionTitle}>Pengumuman</Text>
+            </View>
+            {pengumuman.map((item, idx) => (
+              <View key={item.id}>
+                {idx > 0 && <View style={styles.pengumumanDivider} />}
+                <Pressable
+                  style={styles.pengumumanItem}
+                  onPress={() => setSelectedPengumuman(item)}
+                >
+                  <View style={styles.pengumumanTitleRow}>
+                    <Text style={styles.pengumumanTitle} numberOfLines={1}>
+                      {item.judul}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color="#1d4ed8" />
+                  </View>
+                  <Text style={styles.pengumumanBody} numberOfLines={2}>
+                    {item.isi}
+                  </Text>
+                </Pressable>
+              </View>
+            ))}
+          </AnimatedCard>
+        )}
+
         {data && (
-          <AnimatedCard index={0} style={styles.progressCard} onPress={() => router.push('/perangkat')}>
+          <AnimatedCard index={1} style={styles.progressCard} onPress={() => router.push('/perangkat')}>
             <View style={styles.progressHeader}>
               <View style={styles.rowGap}>
                 <Ionicons name="checkmark-done-circle" size={20} color="#065f46" />
@@ -238,6 +276,34 @@ export default function BerandaScreen() {
         )}
       </View>
     </ScrollView>
+
+    <Modal
+      visible={selectedPengumuman !== null}
+      animationType="slide"
+      transparent
+      onRequestClose={() => setSelectedPengumuman(null)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Detail Pengumuman</Text>
+            <Pressable onPress={() => setSelectedPengumuman(null)}>
+              <Ionicons name="close" size={24} color="#64748b" />
+            </Pressable>
+          </View>
+          {selectedPengumuman && (
+            <ScrollView style={{ maxHeight: 420 }}>
+              <Text style={styles.detailTitle}>{selectedPengumuman.judul}</Text>
+              <Text style={styles.detailMeta}>
+                {selectedPengumuman.created_at ?? '-'}
+                {selectedPengumuman.pembuat ? ` · ${selectedPengumuman.pembuat}` : ''}
+              </Text>
+              <Text style={styles.detailBody}>{selectedPengumuman.isi}</Text>
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
     </SwipeTabScreen>
   );
 }
@@ -336,6 +402,57 @@ const styles = StyleSheet.create({
   gridLabel: { fontSize: 11, fontWeight: '600', color: '#1e293b', textAlign: 'center' },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   linkText: { fontSize: 13, fontWeight: '700', color: '#0f766e', marginBottom: 10 },
+  pengumumanGlassCard: {
+    backgroundColor: 'rgba(219, 234, 254, 0.45)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1.5,
+    borderColor: '#2563eb',
+    marginBottom: 14,
+  },
+  pengumumanHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 4 },
+  pengumumanBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    backgroundColor: '#2563eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pengumumanSectionTitle: { fontSize: 13, fontWeight: '800', color: '#1e3a8a' },
+  pengumumanDivider: { height: 1, backgroundColor: 'rgba(37, 99, 235, 0.2)' },
+  pengumumanItem: { paddingVertical: 6 },
+  pengumumanTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  pengumumanTitle: { flex: 1, fontSize: 13, fontWeight: '800', color: '#0f172a' },
+  pengumumanBody: { fontSize: 12, color: '#1e293b', marginTop: 2, lineHeight: 17 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  modalTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
+  detailTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
+  detailMeta: { fontSize: 12, color: '#2563eb', fontWeight: '600', marginTop: 4, marginBottom: 10 },
+  detailBody: { fontSize: 14, color: '#334155', lineHeight: 21 },
   lessonCard: {
     flexDirection: 'row',
     alignItems: 'center',

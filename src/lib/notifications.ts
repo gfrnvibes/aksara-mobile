@@ -52,7 +52,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     );
     const token = tokenData.data;
 
-    await apiRequest('/guru/push-token', {
+    await apiRequest('/push-token', {
       method: 'POST',
       body: {
         token,
@@ -76,7 +76,7 @@ export async function unregisterPushNotificationsAsync(): Promise<void> {
   try {
     const token = await getStoredItem(PUSH_TOKEN_KEY);
     if (token) {
-      await apiRequest('/guru/push-token', {
+      await apiRequest('/push-token', {
         method: 'DELETE',
         body: { token },
       });

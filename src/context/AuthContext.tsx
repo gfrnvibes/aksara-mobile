@@ -206,8 +206,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(data.user);
       setTahunAjaran(data.tahun_ajaran);
       setBiometricLocked(false);
+      registerForPushNotificationsAsync();
       if (data.user.role === 'guru') {
-        registerForPushNotificationsAsync();
         syncJadwalLocalNotifications();
       }
     },
@@ -240,6 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(data.user);
       setTahunAjaran(data.tahun_ajaran);
       setBiometricLocked(false);
+      registerForPushNotificationsAsync();
     },
     [biometricEnabled],
   );

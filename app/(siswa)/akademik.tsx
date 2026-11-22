@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { AnimatedCard } from '@/src/components/AnimatedCard';
@@ -19,6 +20,8 @@ export default function SiswaAkademikScreen() {
   const [semester, setSemester] = useState<string>('');
   const [nilaiData, setNilaiData] = useState<SiswaNilaiResponse | null>(null);
   const [ekskulData, setEkskulData] = useState<SiswaEkskulResponse | null>(null);
+  const [catatanOrtu, setCatatanOrtu] = useState('');
+  const [savingCatatan, setSavingCatatan] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -31,6 +34,7 @@ export default function SiswaAkademikScreen() {
       ]);
       setNilaiData(nilaiRes);
       setEkskulData(ekskulRes);
+      setCatatanOrtu(nilaiRes.catatan_orang_tua ?? '');
       if (!selectedSemester && nilaiRes.semester_aktif) {
         setSemester(String(nilaiRes.semester_aktif));
       }
@@ -50,6 +54,29 @@ export default function SiswaAkademikScreen() {
     setSemester(sem);
     setLoading(true);
     loadData(sem);
+  }
+
+  async function handleSaveCatatanOrtu() {
+    setSavingCatatan(true);
+    try {
+      const semNum = Number(semester || nilaiData?.semester_aktif || 1);
+      const res = await apiRequest<{ message: string; catatan_orang_tua: string | null }>(
+        '/siswa/nilai/catatan-orang-tua',
+        {
+          method: 'POST',
+          body: {
+            semester: semNum,
+            catatan_orang_tua: catatanOrtu.trim(),
+          },
+        },
+      );
+      setCatatanOrtu(res.catatan_orang_tua ?? '');
+      Alert.alert('Tersimpan', res.message);
+    } catch (e) {
+      Alert.alert('Gagal Menyimpan', e instanceof Error ? e.message : 'Terjadi kesalahan.');
+    } finally {
+      setSavingCatatan(false);
+    }
   }
 
   return (
@@ -157,18 +184,48 @@ export default function SiswaAkademikScreen() {
                 </View>
               </View>
 
-              {(nilaiData?.catatan_wali_kelas || nilaiData?.keputusan) && (
+              {nilaiData?.keputusan ? (
                 <View style={styles.noteBox}>
-                  {nilaiData.keputusan ? (
-                    <Text style={styles.keputusanText}>Keputusan: {nilaiData.keputusan}</Text>
-                  ) : null}
-                  {nilaiData.catatan_wali_kelas ? (
-                    <Text style={styles.noteText}>
-                      Catatan Wali Kelas: {nilaiData.catatan_wali_kelas}
-                    </Text>
-                  ) : null}
+                  <Text style={styles.keputusanText}>Keputusan: {nilaiData.keputusan}</Text>
                 </View>
-              )}
+              ) : null}
+            </AnimatedCard>
+
+            <AnimatedCard index={1} style={[styles.card, { marginBottom: 12 }]}>
+              <Text style={styles.catatanHeading}>Catatan Wali Kelas</Text>
+              <Text style={styles.catatanBody}>
+                {nilaiData?.catatan_wali_kelas?.trim()
+                  ? nilaiData.catatan_wali_kelas
+                  : 'Belum ada catatan wali kelas untuk semester ini.'}
+              </Text>
+
+              <View style={styles.catatanDivider} />
+
+              <Text style={styles.catatanHeading}>Catatan Orang Tua / Wali</Text>
+              <TextInput
+                style={styles.catatanInput}
+                value={catatanOrtu}
+                onChangeText={setCatatanOrtu}
+                placeholder="Tulis tanggapan atau catatan untuk wali kelas..."
+                placeholderTextColor="#94a3b8"
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+              <Pressable
+                style={[styles.saveCatatanBtn, savingCatatan && { opacity: 0.7 }]}
+                onPress={handleSaveCatatanOrtu}
+                disabled={savingCatatan}
+              >
+                {savingCatatan ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Ionicons name="save-outline" size={16} color="#ffffff" />
+                    <Text style={styles.saveCatatanText}>Simpan Catatan</Text>
+                  </>
+                )}
+              </Pressable>
             </AnimatedCard>
 
             {(nilaiData?.mapel?.length ?? 0) === 0 ? (
@@ -331,6 +388,31 @@ const styles = StyleSheet.create({
   },
   keputusanText: { fontSize: 12, fontWeight: '700', color: '#065f46' },
   noteText: { fontSize: 12, color: '#475569', lineHeight: 18 },
+  catatanHeading: { fontSize: 13, fontWeight: '700', color: '#0f172a', marginBottom: 4 },
+  catatanBody: { fontSize: 13, color: '#475569', lineHeight: 19 },
+  catatanDivider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 12 },
+  catatanInput: {
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    padding: 10,
+    fontSize: 13,
+    color: '#0f172a',
+    minHeight: 74,
+    marginTop: 4,
+  },
+  saveCatatanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#065f46',
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginTop: 10,
+  },
+  saveCatatanText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
   mapelTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   mapelName: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
   kkmText: { fontSize: 12, color: '#64748b', marginTop: 2 },

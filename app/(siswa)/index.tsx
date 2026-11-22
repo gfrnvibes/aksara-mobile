@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -16,7 +17,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard } from '@/src/components/AnimatedCard';
 import { IslamicPattern } from '@/src/components/IslamicPattern';
 import { useAuth } from '@/src/context/AuthContext';
-import { apiRequest, SiswaBerandaResponse } from '@/src/lib/api';
+import {
+  apiRequest,
+  PengumumanItem,
+  PengumumanResponse,
+  SiswaBerandaResponse,
+  SiswaNotifikasiItem,
+  SiswaNotifikasiResponse,
+} from '@/src/lib/api';
 
 function formatRupiah(value: number): string {
   return 'Rp ' + Math.round(value || 0).toLocaleString('id-ID');
@@ -26,13 +34,29 @@ export default function SiswaBerandaScreen() {
   const { user, tahunAjaran, logout } = useAuth();
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<SiswaBerandaResponse | null>(null);
+  const [pengumuman, setPengumuman] = useState<PengumumanItem[]>([]);
+  const [notifikasi, setNotifikasi] = useState<SiswaNotifikasiItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const [selectedNotif, setSelectedNotif] = useState<SiswaNotifikasiItem | null>(null);
+  const [selectedPengumuman, setSelectedPengumuman] = useState<PengumumanItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const res = await apiRequest<SiswaBerandaResponse>('/siswa/beranda');
+      const [res, pengumumanRes, notifRes] = await Promise.all([
+        apiRequest<SiswaBerandaResponse>('/siswa/beranda'),
+        apiRequest<PengumumanResponse>('/pengumuman').catch(() => ({ pengumuman: [] })),
+        apiRequest<SiswaNotifikasiResponse>('/siswa/notifikasi').catch(() => ({
+          unread_count: 0,
+          items: [],
+        })),
+      ]);
       setData(res);
+      setPengumuman(pengumumanRes.pengumuman ?? []);
+      setNotifikasi(notifRes.items ?? []);
+      setUnreadCount(notifRes.unread_count ?? 0);
     } catch (e) {
       Alert.alert('Gagal Memuat', e instanceof Error ? e.message : 'Terjadi kesalahan.');
     } finally {
@@ -40,6 +64,25 @@ export default function SiswaBerandaScreen() {
       setRefreshing(false);
     }
   }, []);
+
+  async function handleOpenNotifModal() {
+    setSelectedNotif(null);
+    setShowNotifModal(true);
+    if (unreadCount > 0) {
+      try {
+        await apiRequest('/siswa/notifikasi/baca', { method: 'POST' });
+        setUnreadCount(0);
+        setNotifikasi((prev) =>
+          prev.map((item) => ({
+            ...item,
+            dibaca_at: item.dibaca_at ?? new Date().toISOString(),
+          })),
+        );
+      } catch {
+        // Ignore mark-read error on modal open.
+      }
+    }
+  }
 
   useEffect(() => {
     loadData();
@@ -88,15 +131,25 @@ export default function SiswaBerandaScreen() {
         <View style={styles.heroTopRow}>
           <View style={styles.rolePill}>
             <Ionicons name="people" size={13} color="#fbbf24" />
-            <Text style={styles.rolePillText}>Portal Siswa & Orang Tua</Text>
+            <Text style={styles.rolePillText} numberOfLines={1}>Portal Siswa</Text>
           </View>
           <View style={styles.heroActions}>
+            <Pressable style={styles.notifBtn} onPress={handleOpenNotifModal}>
+              <Ionicons name="notifications-outline" size={18} color="#ecfdf5" />
+              {unreadCount > 0 ? (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
             <Pressable style={styles.profilBtn} onPress={() => router.push('/profil')}>
-              <Ionicons name="person-circle-outline" size={17} color="#ecfdf5" />
+              <Ionicons name="person-circle-outline" size={16} color="#ecfdf5" />
               <Text style={styles.profilBtnText}>Profil</Text>
             </Pressable>
             <Pressable style={styles.logoutBtn} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={17} color="#fde68a" />
+              <Ionicons name="log-out-outline" size={16} color="#fde68a" />
               <Text style={styles.logoutText}>Keluar</Text>
             </Pressable>
           </View>
@@ -136,8 +189,40 @@ export default function SiswaBerandaScreen() {
         </View>
       ) : (
         <View style={styles.body}>
+          {pengumuman.length > 0 && (
+            <AnimatedCard index={0} style={[styles.pengumumanCard, styles.pengumumanPad, { marginBottom: 12 }]}>
+              <View style={styles.pengumumanHeader}>
+                <View style={styles.sectionTitleRow}>
+                  <View style={styles.pengumumanBadge}>
+                    <Ionicons name="megaphone" size={12} color="#ffffff" />
+                  </View>
+                  <Text style={styles.pengumumanSectionTitle}>Pengumuman</Text>
+                </View>
+              </View>
+              {pengumuman.map((item, idx) => (
+                <View key={item.id}>
+                  {idx > 0 && <View style={styles.pengumumanDivider} />}
+                  <Pressable
+                    style={styles.pengumumanItem}
+                    onPress={() => setSelectedPengumuman(item)}
+                  >
+                    <View style={styles.pengumumanTitleRow}>
+                      <Text style={styles.pengumumanTitle} numberOfLines={1}>
+                        {item.judul}
+                      </Text>
+                      <Ionicons name="chevron-forward" size={16} color="#1d4ed8" />
+                    </View>
+                    <Text style={styles.pengumumanBody} numberOfLines={2}>
+                      {item.isi}
+                    </Text>
+                  </Pressable>
+                </View>
+              ))}
+            </AnimatedCard>
+          )}
+
           <AnimatedCard
-            index={0}
+            index={1}
             style={[styles.card, { marginBottom: 12 }]}
             contentStyle={styles.cardPad}
             onPress={() => router.push('/(siswa)/presensi')}
@@ -250,7 +335,7 @@ export default function SiswaBerandaScreen() {
             </AnimatedCard>
           </View>
 
-          <AnimatedCard index={5} style={[styles.card, styles.cardPad]}>
+          <AnimatedCard index={6} style={[styles.card, styles.cardPad]}>
             <Text style={styles.sectionTitle}>Menu Cepat Siswa & Wali</Text>
             <View style={styles.quickList}>
               <Pressable style={styles.quickItem} onPress={() => router.push('/profil')}>
@@ -292,6 +377,107 @@ export default function SiswaBerandaScreen() {
           </AnimatedCard>
         </View>
       )}
+
+      <Modal
+        visible={selectedPengumuman !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectedPengumuman(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Detail Pengumuman</Text>
+              <Pressable onPress={() => setSelectedPengumuman(null)}>
+                <Ionicons name="close" size={24} color="#64748b" />
+              </Pressable>
+            </View>
+            {selectedPengumuman && (
+              <ScrollView style={{ maxHeight: 420 }}>
+                <Text style={styles.detailTitle}>{selectedPengumuman.judul}</Text>
+                <Text style={styles.detailMeta}>
+                  {selectedPengumuman.created_at ?? '-'}
+                  {selectedPengumuman.pembuat ? ` • ${selectedPengumuman.pembuat}` : ''}
+                </Text>
+                <Text style={styles.detailBody}>{selectedPengumuman.isi}</Text>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showNotifModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowNotifModal(false);
+          setSelectedNotif(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              {selectedNotif ? (
+                <Pressable
+                  style={styles.modalBackBtn}
+                  onPress={() => setSelectedNotif(null)}
+                >
+                  <Ionicons name="arrow-back" size={20} color="#065f46" />
+                  <Text style={styles.modalTitle}>Detail Notifikasi</Text>
+                </Pressable>
+              ) : (
+                <Text style={styles.modalTitle}>Notifikasi Aktivitas</Text>
+              )}
+              <Pressable
+                onPress={() => {
+                  setShowNotifModal(false);
+                  setSelectedNotif(null);
+                }}
+              >
+                <Ionicons name="close" size={24} color="#64748b" />
+              </Pressable>
+            </View>
+            {selectedNotif ? (
+              <ScrollView style={{ maxHeight: 420 }}>
+                <Text style={styles.detailTitle}>{selectedNotif.judul}</Text>
+                <Text style={styles.detailMeta}>{selectedNotif.created_at ?? '-'}</Text>
+                <Text style={styles.detailBody}>{selectedNotif.isi}</Text>
+              </ScrollView>
+            ) : (
+              <ScrollView style={{ maxHeight: 420 }}>
+                {notifikasi.length === 0 ? (
+                  <Text style={styles.emptyInfo}>Belum ada notifikasi aktivitas.</Text>
+                ) : (
+                  notifikasi.map((n, idx) => (
+                    <View key={n.id}>
+                      {idx > 0 && <View style={styles.divider} />}
+                      <Pressable
+                        style={styles.notifRow}
+                        onPress={() => setSelectedNotif(n)}
+                      >
+                        <View style={styles.notifIconBox}>
+                          <Ionicons name="notifications" size={16} color="#065f46" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.notifTitle} numberOfLines={1}>
+                            {n.judul}
+                          </Text>
+                          <Text style={styles.notifBody} numberOfLines={2}>
+                            {n.isi}
+                          </Text>
+                          <Text style={styles.notifTime}>{n.created_at ?? '-'}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
+                      </Pressable>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -322,7 +508,26 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   rolePillText: { color: '#fef3c7', fontSize: 11, fontWeight: '700' },
-  heroActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  heroActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  notifBtn: {
+    position: 'relative',
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    padding: 8,
+    borderRadius: 999,
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#ef4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  notifBadgeText: { color: '#ffffff', fontSize: 10, fontWeight: '800' },
   profilBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -419,4 +624,73 @@ const styles = StyleSheet.create({
   quickTitle: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
   quickDesc: { fontSize: 12, color: '#64748b', marginTop: 2 },
   divider: { height: 1, backgroundColor: '#f1f5f9' },
+  emptyInfo: { fontSize: 13, color: '#1e3a8a', paddingVertical: 6 },
+  pengumumanCard: {
+    backgroundColor: 'rgba(219, 234, 254, 0.45)',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#2563eb',
+  },
+  pengumumanPad: { paddingHorizontal: 12, paddingVertical: 10 },
+  pengumumanHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  pengumumanBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    backgroundColor: '#2563eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pengumumanSectionTitle: { fontSize: 13, fontWeight: '800', color: '#1e3a8a' },
+  pengumumanDivider: { height: 1, backgroundColor: 'rgba(37, 99, 235, 0.2)' },
+  pengumumanItem: { paddingVertical: 6 },
+  pengumumanTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  pengumumanTitle: { flex: 1, fontSize: 13, fontWeight: '800', color: '#0f172a' },
+  pengumumanBody: { fontSize: 12, color: '#1e293b', marginTop: 2, lineHeight: 17 },
+  modalBackBtn: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  detailTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
+  detailMeta: { fontSize: 12, color: '#2563eb', fontWeight: '600', marginTop: 4, marginBottom: 10 },
+  detailBody: { fontSize: 14, color: '#334155', lineHeight: 21 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  modalTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
+  notifRow: { flexDirection: 'row', gap: 10, paddingVertical: 10 },
+  notifIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#ecfdf5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  notifTitle: { fontSize: 13, fontWeight: '700', color: '#0f172a' },
+  notifBody: { fontSize: 12, color: '#475569', marginTop: 2, lineHeight: 17 },
+  notifTime: { fontSize: 11, color: '#94a3b8', marginTop: 3 },
 });

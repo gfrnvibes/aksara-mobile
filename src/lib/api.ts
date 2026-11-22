@@ -73,6 +73,7 @@ export interface SiswaNilaiResponse {
   jumlah: number;
   rata_rata: number | null;
   catatan_wali_kelas: string | null;
+  catatan_orang_tua: string | null;
   keputusan: string | null;
   mapel: {
     id: number;
@@ -138,6 +139,55 @@ export interface SiswaKeuanganResponse {
     jenis: 'setor' | 'tarik';
     nominal: number;
     keterangan: string | null;
+  }[];
+}
+
+export interface PengumumanItem {
+  id: number;
+  judul: string;
+  isi: string;
+  tujuan: 'guru' | 'siswa' | 'semua';
+  tujuan_label: string;
+  tanggal_mulai: string | null;
+  tanggal_selesai: string | null;
+  pembuat: string | null;
+  created_at: string | null;
+}
+
+export interface PengumumanResponse {
+  pengumuman: PengumumanItem[];
+}
+
+export interface SiswaNotifikasiItem {
+  id: number;
+  kategori: string;
+  judul: string;
+  isi: string;
+  dibaca_at: string | null;
+  created_at: string | null;
+}
+
+export interface SiswaNotifikasiResponse {
+  unread_count: number;
+  items: SiswaNotifikasiItem[];
+}
+
+export interface GuruKeuanganResponse {
+  ringkasan: {
+    total_diterima: number;
+    total_belum_dibayar: number;
+    jumlah_slip: number;
+  };
+  slip: {
+    id: number;
+    periode: string;
+    gaji_pokok: number;
+    tunjangan: number;
+    potongan: number;
+    bersih: number;
+    sudah_dibayar: boolean;
+    tanggal_bayar: string | null;
+    catatan: string | null;
   }[];
 }
 
