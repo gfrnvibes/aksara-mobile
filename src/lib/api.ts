@@ -13,11 +13,132 @@ export interface GtkInfo {
   jenis_gtk: string;
 }
 
+export interface SiswaInfo {
+  id: number;
+  nis: string;
+  nisn: string | null;
+  nik?: string | null;
+  nama: string;
+  jenis_kelamin?: string | null;
+  tempat_lahir?: string | null;
+  tanggal_lahir?: string | null;
+  agama?: string | null;
+  kelas: string | null;
+  wali_kelas: string | null;
+  status?: string | null;
+}
+
 export interface UserProfile {
   id: number;
+  role: 'guru' | 'siswa';
   name: string;
   email: string | null;
   gtk: GtkInfo | null;
+  siswa: SiswaInfo | null;
+}
+
+export interface SiswaBerandaResponse {
+  siswa: SiswaInfo;
+  tahun_ajaran: string | null;
+  semester: string;
+  ringkasan: {
+    presensi_bulan_ini: { hadir: number; sakit: number; izin: number; alpa: number };
+    rata_rata: number | null;
+    peringkat: number | null;
+    total_tagihan_sisa: number;
+    saldo_tabungan: number;
+    poin_pelanggaran: number;
+    jumlah_prestasi: number;
+  };
+}
+
+export interface SiswaPresensiResponse {
+  semester: string;
+  rekap: { hadir: number; sakit: number; izin: number; alpa: number };
+  riwayat: {
+    id: number;
+    tanggal: string;
+    status: string;
+    status_label: string;
+    terlambat_menit: number;
+    catatan: string | null;
+  }[];
+}
+
+export interface SiswaNilaiResponse {
+  semester_aktif: number;
+  semester_opsi: Record<string, string>;
+  peringkat: number | null;
+  jumlah_siswa_kelas: number;
+  jumlah: number;
+  rata_rata: number | null;
+  catatan_wali_kelas: string | null;
+  keputusan: string | null;
+  mapel: {
+    id: number;
+    mapel: string;
+    kkm: number;
+    nilai_pengetahuan: number | null;
+    nilai_keterampilan: number | null;
+    nilai_akhir: number | null;
+    sikap: string | null;
+    capaian_kompetensi: string | null;
+  }[];
+}
+
+export interface SiswaEkskulResponse {
+  ekskul: {
+    id: number;
+    nama: string;
+    pembina: string | null;
+    jabatan: string;
+    nilai: string | null;
+    keterangan: string | null;
+  }[];
+}
+
+export interface SiswaCatatanResponse {
+  total_poin_pelanggaran: number;
+  pelanggaran: {
+    id: number;
+    tanggal: string;
+    kategori: string;
+    pelanggaran: string;
+    poin: number;
+    tindak_lanjut: string | null;
+    status: string;
+  }[];
+  prestasi: {
+    id: number;
+    tanggal: string;
+    nama_prestasi: string;
+    tingkat: string;
+    peringkat: string | null;
+    penyelenggara: string | null;
+    keterangan: string | null;
+  }[];
+}
+
+export interface SiswaKeuanganResponse {
+  total_sisa_tagihan: number;
+  tagihan: {
+    id: number;
+    nama: string;
+    periode: string;
+    nominal: number;
+    terbayar: number;
+    sisa: number;
+    status: string;
+    jatuh_tempo: string;
+  }[];
+  saldo_tabungan: number;
+  tabungan: {
+    id: number;
+    tanggal: string;
+    jenis: 'setor' | 'tarik';
+    nominal: number;
+    keterangan: string | null;
+  }[];
 }
 
 export interface TahunAjaranInfo {
@@ -340,6 +461,14 @@ export function defaultApiUrl(): string {
 export async function getApiUrl(): Promise<string> {
   const saved = await getStoredItem(API_URL_KEY);
   return saved && saved.trim() !== '' ? saved.replace(/\/+$/, '') : defaultApiUrl();
+}
+
+export function resolveMediaUrl(url: string, activeApiUrl: string): string {
+  const apiIndex = url.indexOf('/api/v1');
+  if (apiIndex !== -1) {
+    return `${activeApiUrl.replace(/\/+$/, '')}${url.slice(apiIndex + '/api/v1'.length)}`;
+  }
+  return url;
 }
 
 export async function setApiUrl(url: string): Promise<void> {
